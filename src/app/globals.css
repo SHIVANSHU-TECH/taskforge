@@ -1,0 +1,155 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Forge Console — light ("daylight shop floor"): cool steel neutrals, ember action. */
+    --background: 220 20% 98%;
+    --foreground: 222 40% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 40% 11%;
+    --primary: 20 90% 48%;
+    --primary-foreground: 30 100% 98%;
+    --secondary: 220 16% 95%;
+    --secondary-foreground: 222 33% 20%;
+    --muted: 220 16% 95%;
+    --muted-foreground: 220 12% 42%;
+    --accent: 220 18% 94%;
+    --accent-foreground: 222 40% 15%;
+    --destructive: 0 72% 48%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 16% 90%;
+    --input: 220 16% 88%;
+    --ring: 20 90% 48%;
+
+    --ember: 20 90% 48%;
+    --ember-foreground: 30 100% 98%;
+    --ember-soft: 26 100% 94%;
+    --ember-soft-foreground: 18 80% 34%;
+
+    --sidebar: 222 44% 9%;
+    --sidebar-foreground: 214 20% 78%;
+
+    --shadow-color: 222 45% 20%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    /* Forge Console — dark ("night shift"): deep ink graphite, ember stays hot. */
+    --background: 222 44% 7%;
+    --foreground: 214 28% 92%;
+    --card: 222 34% 11%;
+    --card-foreground: 214 28% 92%;
+    --primary: 21 92% 55%;
+    --primary-foreground: 24 45% 8%;
+    --secondary: 220 24% 16%;
+    --secondary-foreground: 214 24% 88%;
+    --muted: 220 24% 15%;
+    --muted-foreground: 218 14% 62%;
+    --accent: 220 26% 17%;
+    --accent-foreground: 214 28% 92%;
+    --destructive: 0 66% 52%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 22% 19%;
+    --input: 220 22% 22%;
+    --ring: 21 92% 55%;
+
+    --ember: 21 92% 55%;
+    --ember-foreground: 24 45% 8%;
+    --ember-soft: 20 60% 16%;
+    --ember-soft-foreground: 28 100% 78%;
+
+    --sidebar: 224 46% 6%;
+    --sidebar-foreground: 214 20% 74%;
+
+    --shadow-color: 224 60% 3%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    text-rendering: optimizeLegibility;
+  }
+  h1, h2, h3, h4 {
+    @apply font-display tracking-tight;
+  }
+  /* Refined focus ring — ember, offset from the surface. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+  /* Slim, on-theme scrollbars. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.35) transparent;
+  }
+  *::-webkit-scrollbar { width: 10px; height: 10px; }
+  *::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  *::-webkit-scrollbar-thumb:hover { background-color: hsl(var(--muted-foreground) / 0.55); }
+  ::selection {
+    background: hsl(var(--ember) / 0.25);
+  }
+}
+
+@layer components {
+  /* Small uppercase technical label — the console vernacular. */
+  .eyebrow {
+    @apply font-mono text-[0.68rem] font-medium uppercase tracking-[0.18em] text-muted-foreground;
+  }
+  /* Ember gradient text for hero numerals / brand accents. */
+  .text-ember-gradient {
+    background: linear-gradient(100deg, hsl(var(--ember)), hsl(38 95% 55%));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  /* The forge mark: a heat-gradient monogram chip. */
+  .forge-mark {
+    background: linear-gradient(140deg, hsl(21 92% 55%), hsl(14 88% 44%));
+    box-shadow: 0 4px 14px -4px hsl(var(--ember) / 0.6), inset 0 1px 0 hsl(38 100% 75% / 0.5);
+  }
+}
+
+@layer utilities {
+  /* Restrained blueprint grid, fading out — used behind hero bands only. */
+  .bg-blueprint {
+    background-image: theme("backgroundImage.grid-blueprint");
+    background-size: 28px 28px;
+    -webkit-mask-image: radial-gradient(ellipse 80% 90% at 50% 0%, #000 40%, transparent 100%);
+    mask-image: radial-gradient(ellipse 80% 90% at 50% 0%, #000 40%, transparent 100%);
+  }
+  /* Ember radial atmosphere. */
+  .glow-ember {
+    background: radial-gradient(60% 80% at 50% 0%, hsl(var(--ember) / 0.18), transparent 70%);
+  }
+  .stagger > * {
+    animation: fade-in-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .stagger > *:nth-child(2) { animation-delay: 0.05s; }
+  .stagger > *:nth-child(3) { animation-delay: 0.1s; }
+  .stagger > *:nth-child(4) { animation-delay: 0.15s; }
+  .stagger > *:nth-child(5) { animation-delay: 0.2s; }
+  .stagger > *:nth-child(6) { animation-delay: 0.25s; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+

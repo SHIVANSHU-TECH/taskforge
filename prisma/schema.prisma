@@ -1,0 +1,310 @@
+// TaskForge AI — data model (Phase 1)
+//
+// Dev uses SQLite, which does not support native enums or the Json scalar.
+// To keep ONE schema portable to Postgres later, we model:
+//   - "enum" fields as String (allowed values validated in app code via zod, see src/lib/constants.ts)
+//   - JSON payloads as String columns named `*Json` (stringified JSON)
+// For production Postgres you can switch these to real enums / Json without changing app logic much.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id         String   @id @default(cuid())
+  name       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  users      User[]
+  workspaces Workspace[]
+  recipes    Recipe[]
+  templates  Template[]
+}
+
+model User {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  email          String       @unique
+  name           String?
+  passwordHash   String
+  role           String       @default("member") // owner | member | viewer
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  auditLogs      AuditLog[]
+
+  @@index([organizationId])
+}
+
+model Workspace {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  projects       Project[]
+
+  @@index([organizationId])
+}
+
+model Project {
+  id          String           @id @default(cuid())
+  workspaceId String
+  workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  sourceType  String // zip | github
+  sourceRef   String?
+  storageKey  String? // canonical archive of the clean project tree
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  analysis    ProjectAnalysis?
+  runs        Run[]
+
+  @@index([workspaceId])
+}
+
+model ProjectAnalysis {
+  id                  String   @id @default(cuid())
+  projectId           String   @unique
+  project             Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  framework           String?
+  packageManager      String?
+  scriptsJson         String? // { "build": "...", "dev": "..." }
+  nodeVersion         String?
+  entryPointsJson     String?
+  envVarsDetectedJson String? // names only, never values
+  dependenciesJson    String? // dependency names only
+  fileTreeJson        String? // nested file tree for the Project Files browser
+  fileCount           Int?
+  sizeBytes           Int?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+// A reusable reference archive uploaded by a user: a ZIP of some implementation
+// (e.g. "how Stripe was integrated") plus a free-text prompt describing what to
+// copy or take from it. Analyzed with the same pipeline as Projects so the stack
+// and file tree can be browsed as the "suggestion" of what's reusable. Org-scoped.
+model Template {
+  id                  String   @id @default(cuid())
+  organizationId      String
+  organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name                String
+  prompt              String // what to do / copy / take from this reference
+  sourceRef           String? // original filename
+  storageKey          String? // stored archive: templates/{id}/source.zip
+  framework           String?
+  packageManager      String?
+  nodeVersion         String?
+  scriptsJson         String?
+  entryPointsJson     String?
+  envVarsDetectedJson String? // names only, never values
+  dependenciesJson    String?
+  fileTreeJson        String?
+  fileCount           Int?
+  sizeBytes           Int?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  recipes             Recipe[] @relation("RecipeTemplates")
+
+  @@index([organizationId])
+}
+
+model Recipe {
+  id             String          @id @default(cuid())
+  organizationId String
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  slug           String          @unique
+  description    String?
+  category       String?
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  versions       RecipeVersion[]
+  // Curated reference implementations: whole reference projects (+ a "what to
+  // take from it" note) the AI is given as concrete examples on every run of
+  // this recipe. Linked at the Recipe level so the link survives publishNewVersion.
+  templates      Template[]      @relation("RecipeTemplates")
+
+  @@index([organizationId])
+}
+
+model RecipeVersion {
+  id                String             @id @default(cuid())
+  recipeId          String
+  recipe            Recipe             @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  version           Int
+  prompt            String
+  systemPrompt      String?
+  model             String?
+  changelog         String?
+  createdAt         DateTime           @default(now())
+  inputs            RecipeInput[]
+  qaChecks          RecipeQACheck[]
+  referenceExamples ReferenceExample[]
+  runs              Run[]
+
+  @@unique([recipeId, version])
+  @@index([recipeId])
+}
+
+model RecipeInput {
+  id              String        @id @default(cuid())
+  recipeVersionId String
+  recipeVersion   RecipeVersion @relation(fields: [recipeVersionId], references: [id], onDelete: Cascade)
+  key             String
+  label           String
+  type            String // text | color | url | file | image | csv | boolean | select
+  required        Boolean       @default(false)
+  optionsJson     String?
+  validationJson  String?
+  order           Int           @default(0)
+
+  @@index([recipeVersionId])
+}
+
+model RecipeQACheck {
+  id              String        @id @default(cuid())
+  recipeVersionId String
+  recipeVersion   RecipeVersion @relation(fields: [recipeVersionId], references: [id], onDelete: Cascade)
+  type            String // build | typescript | lint | api | e2e | visual | branding
+  required        Boolean       @default(true)
+  configJson      String?
+
+  @@index([recipeVersionId])
+}
+
+model ReferenceExample {
+  id                  String        @id @default(cuid())
+  recipeVersionId     String
+  recipeVersion       RecipeVersion @relation(fields: [recipeVersionId], references: [id], onDelete: Cascade)
+  title               String
+  originalStorageKey  String?
+  completedStorageKey String?
+  promptUsed          String?
+  inputsJson          String?
+  diffStorageKey      String?
+  qaResultJson        String?
+  createdAt           DateTime      @default(now())
+
+  @@index([recipeVersionId])
+}
+
+model Run {
+  id              String            @id @default(cuid())
+  projectId       String
+  project         Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  recipeVersionId String
+  recipeVersion   RecipeVersion     @relation(fields: [recipeVersionId], references: [id])
+  status          String            @default("queued") // queued|analyzing|planning|modifying|validating|repairing|passed|failed|delivered|canceled
+  inputsJson      String?
+  error           String?
+  correlationId   String
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  steps           RunStep[]
+  diffs           Diff[]
+  qaResults       QAResult[]
+  delivery        DeliveryArtifact?
+
+  @@index([projectId])
+  @@index([recipeVersionId])
+  @@index([status])
+}
+
+model RunStep {
+  id           String    @id @default(cuid())
+  runId        String
+  run          Run       @relation(fields: [runId], references: [id], onDelete: Cascade)
+  phase        String // analyze | plan | modify | validate | repair
+  status       String    @default("pending") // pending | active | done | failed
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  logStorageKey String?
+  tokensIn     Int?
+  tokensOut    Int?
+  costEstimate Float?
+  createdAt    DateTime  @default(now())
+
+  @@index([runId])
+}
+
+model Diff {
+  id           String   @id @default(cuid())
+  runId        String
+  run          Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
+  storageKey   String?
+  filesChanged Int?
+  insertions   Int?
+  deletions    Int?
+  summary      String?
+  createdAt    DateTime @default(now())
+
+  @@index([runId])
+}
+
+model QAResult {
+  id                String   @id @default(cuid())
+  runId             String
+  run               Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
+  check             String // build | typescript | lint | api | e2e | visual | branding
+  status            String // pass | fail | skip
+  detailsJson       String?
+  artifactStorageKey String?
+  createdAt         DateTime @default(now())
+
+  @@index([runId])
+}
+
+model DeliveryArtifact {
+  id                   String    @id @default(cuid())
+  runId                String    @unique
+  run                  Run       @relation(fields: [runId], references: [id], onDelete: Cascade)
+  previewUrl           String?
+  qaReportStorageKey   String?
+  changeLogStorageKey  String?
+  finalBundleStorageKey String?
+  shareToken           String    @unique
+  expiresAt            DateTime?
+  createdAt            DateTime  @default(now())
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action       String
+  entity       String?
+  entityId     String?
+  metadataJson String?
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+}
+
+// DB-backed queue (dev). Swap for Redis/BullMQ in production via the Queue interface.
+model Job {
+  id          String    @id @default(cuid())
+  type        String // ingest | run | qa | ...
+  payloadJson String
+  status      String    @default("pending") // pending | active | completed | failed
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(3)
+  lastError   String?
+  runAt       DateTime  @default(now())
+  lockedAt    DateTime?
+  lockedBy    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status, runAt])
+}
