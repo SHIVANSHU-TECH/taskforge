@@ -17,10 +17,20 @@ const schemaPath = join(__dirname, "..", "prisma", "schema.prisma");
 const original = readFileSync(schemaPath, "utf8");
 
 // Replace the provider line only inside the `datasource db { ... }` block.
-const swapped = original.replace(
+let swapped = original.replace(
   /(datasource\s+db\s*\{[^}]*?provider\s*=\s*)"sqlite"/,
   '$1"postgresql"',
 );
+
+// Add a `directUrl` for migrations (Neon: pooled `url` for the app, direct
+// `DATABASE_URL_UNPOOLED` for `prisma db push`). Insert right after the `url`
+// line, and only if not already present.
+if (!/directUrl\s*=/.test(swapped)) {
+  swapped = swapped.replace(
+    /(\n[ \t]*url\s*=\s*env\("DATABASE_URL"\))/,
+    '$1\n  directUrl = env("DATABASE_URL_UNPOOLED")',
+  );
+}
 
 if (swapped === original) {
   if (/datasource\s+db\s*\{[^}]*?provider\s*=\s*"postgresql"/.test(original)) {
@@ -31,5 +41,5 @@ if (swapped === original) {
   }
 } else {
   writeFileSync(schemaPath, swapped, "utf8");
-  console.log("[use-postgres] datasource provider set to postgresql.");
+  console.log("[use-postgres] datasource provider set to postgresql (+ directUrl).");
 }

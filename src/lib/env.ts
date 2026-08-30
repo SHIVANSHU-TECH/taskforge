@@ -6,10 +6,13 @@ import { z } from "zod";
  */
 const schema = z.object({
   DATABASE_URL: z.string().min(1),
+  // Direct (non-pooled) Postgres URL for migrations / `prisma db push` / pg_dump.
+  // On Neon this is the "-pooler"-less host; wired as Prisma `directUrl` in prod.
+  DATABASE_URL_UNPOOLED: z.string().optional(),
   AUTH_SECRET: z.string().min(32, "AUTH_SECRET must be at least 32 characters"),
   APP_URL: z.string().url().default("http://localhost:3000"),
 
-  LLM_PROVIDER: z.enum(["fake", "groq", "anthropic", "openai"]).default("fake"),
+  LLM_PROVIDER: z.enum(["fake", "groq", "anthropic", "openai", "neon"]).default("fake"),
   LLM_MODEL: z.string().default("fake-1"),
   GROQ_API_KEY: z.string().optional(),
   GROQ_BASE_URL: z.string().url().default("https://api.groq.com/openai"),
@@ -17,6 +20,11 @@ const schema = z.object({
   ANTHROPIC_BASE_URL: z.string().url().optional(),
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_BASE_URL: z.string().url().optional(),
+  // Neon AI Gateway (OpenAI-compatible). BASE_URL is the bare branch host
+  // (e.g. https://<branch>-api.ai.<region>.aws.neon.tech); the adapter appends
+  // /v1/chat/completions. TOKEN is the nt_live_... credential.
+  NEON_AI_GATEWAY_BASE_URL: z.string().url().optional(),
+  NEON_AI_GATEWAY_TOKEN: z.string().optional(),
 
   SANDBOX_PROVIDER: z.enum(["local", "e2b", "daytona", "docker"]).default("local"),
 

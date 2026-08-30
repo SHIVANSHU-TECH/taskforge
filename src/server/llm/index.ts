@@ -33,6 +33,16 @@ export function getLlmProvider(): LlmProvider {
       }
       cached = new OpenAiLlmProvider(env.OPENAI_API_KEY, env.OPENAI_BASE_URL);
       return cached;
+    case "neon":
+      if (!env.NEON_AI_GATEWAY_TOKEN || !env.NEON_AI_GATEWAY_BASE_URL) {
+        throw new Error(
+          "LLM_PROVIDER=neon requires NEON_AI_GATEWAY_TOKEN and NEON_AI_GATEWAY_BASE_URL to be set.",
+        );
+      }
+      // Neon AI Gateway is OpenAI-compatible, so it reuses the OpenAI adapter
+      // pointed at the branch's gateway host.
+      cached = new OpenAiLlmProvider(env.NEON_AI_GATEWAY_TOKEN, env.NEON_AI_GATEWAY_BASE_URL);
+      return cached;
     default:
       throw new Error(`Unknown LLM_PROVIDER: ${env.LLM_PROVIDER as string}`);
   }

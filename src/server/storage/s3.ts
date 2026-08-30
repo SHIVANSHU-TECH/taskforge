@@ -39,9 +39,9 @@ async function streamToBuffer(body: unknown): Promise<Buffer> {
 
 /**
  * S3-compatible object storage. Works with AWS S3, Cloudflare R2, Supabase
- * Storage, MinIO, and any S3 API. Configured entirely from env:
+ * Storage, MinIO, and Neon Object Storage. Configured entirely from env:
  *   S3_ENDPOINT, S3_REGION, S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY,
- *   S3_FORCE_PATH_STYLE (true for Supabase/MinIO, false/omit for R2/AWS).
+ *   S3_FORCE_PATH_STYLE (true for Supabase/MinIO/Neon, false/omit for R2/AWS).
  */
 export class S3StorageProvider implements StorageProvider {
   readonly id = "s3";
@@ -57,7 +57,8 @@ export class S3StorageProvider implements StorageProvider {
     }
     this.bucket = env.S3_BUCKET;
     this.client = new S3Client({
-      // R2 uses "auto"; AWS needs a real region. Endpoint is required for R2/Supabase/MinIO.
+      // R2 uses "auto"; AWS/Neon need a real region. Endpoint is required for
+      // R2 / Supabase / MinIO / Neon Object Storage.
       region: env.S3_REGION ?? "auto",
       endpoint: env.S3_ENDPOINT,
       forcePathStyle: env.S3_FORCE_PATH_STYLE,
@@ -65,6 +66,10 @@ export class S3StorageProvider implements StorageProvider {
         accessKeyId: env.S3_ACCESS_KEY_ID,
         secretAccessKey: env.S3_SECRET_ACCESS_KEY,
       },
+      // Only send checksums when the operation requires it. Without this, recent
+      // AWS SDK versions attach a body checksum that some S3-compatible backends
+      // (notably Neon Object Storage) reject on real-content PUTs. Harmless on AWS.
+      requestChecksumCalculation: "WHEN_REQUIRED",
     });
   }
 
