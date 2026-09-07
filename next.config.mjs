@@ -45,6 +45,12 @@ const nextConfig = {
   eslint: { ignoreDuringBuilds: true },
   // bcryptjs is fine in Node runtime; keep server-only packages external.
   serverExternalPackages: ["bcryptjs"],
+  // Raise the body size limit for file uploads (Vercel default is 4.5 MB).
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "100mb",
+    },
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
