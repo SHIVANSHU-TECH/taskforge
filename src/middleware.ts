@@ -21,5 +21,9 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|login|api/auth|deliver|api/deliver).*)"],
+  matcher: [
+    // Public product landing page + its lead API + the static PDF (`/freedom...`)
+    // are intentionally unauthenticated, alongside login/auth and tokenized delivery.
+    "/((?!_next/static|_next/image|favicon.ico|login|api/auth|deliver|api/deliver|freedom|api/leads).*)",
+  ],
 };

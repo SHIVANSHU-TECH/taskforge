@@ -291,6 +291,28 @@ model AuditLog {
   @@index([userId])
 }
 
+// Public product landing-page leads ("I'm Interested" form). Captured from
+// anonymous visitors (no auth), so the API boundary validates with zod and
+// rate-limits. Raw IPs are never stored — only a salted hash for abuse triage.
+model Lead {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String
+  company   String?
+  message   String?
+  product   String? // product the visitor was viewing
+  plan      String? // pricing plan/variant selected, if any
+  source    String   @default("product-landing-page")
+  userAgent String?
+  ipHash    String?
+  status    String   @default("new") // new | contacted | qualified | closed
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([status])
+}
+
 // DB-backed queue (dev). Swap for Redis/BullMQ in production via the Queue interface.
 model Job {
   id          String    @id @default(cuid())

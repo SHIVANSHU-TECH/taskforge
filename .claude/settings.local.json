@@ -6,7 +6,20 @@
       "Bash(pnpm -v)",
       "Bash(echo \"exit=$?\")",
       "Bash(npx prisma *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(mkdir -p /tmp/pdfp)",
+      "Bash(cat)",
+      "Bash(C:/Users/hp/AppData/Local/Programs/Python/Python312/python.exe /tmp/render.py 'C:/Users/hp/Downloads/Freedom 2025 Plan PPT.pdf' 1 8 /tmp/pdfp/a 1.2)",
+      "Read(//tmp/pdfp/**)",
+      "Bash(python -c \"import fitz; print\\('PyMuPDF ok'\\)\")",
+      "Bash(python -c \"import pdfplumber; print\\('pdfplumber ok'\\)\")",
+      "Bash(python -c \"import pypdf; print\\('pypdf ok'\\)\")",
+      "Bash(pdftotext -layout \"/c/Users/hp/Downloads/Freedom 2025 Plan PPT.pdf\" .pdf-extract/plan1.txt)",
+      "Bash(pdftotext -layout \"/c/Users/hp/Downloads/Freedom 2025 Plan PPT_260814_212347.pdf\" .pdf-extract/plan2.txt)",
+      "Bash(ls /mingw64/bin/ | grep -i \"pdf\\\\|mutool\\\\|gs\\\\|magick\\\\|convert\" 2>&1 ; echo \"=== full poppler check ===\" ; ls /mingw64/bin/pdf* 2>&1)",
+      "Bash(node render.mjs \"/c/Users/hp/Downloads/Freedom 2025 Plan PPT.pdf\" ./img1 1 4 1.3)",
+      "Bash(node render.mjs \"/c/Users/hp/Downloads/Freedom 2025 Plan PPT.pdf\" ./img1 1 999 1.3)",
+      "Bash(node render.mjs \"/c/Users/hp/Downloads/Freedom 2025 Plan PPT_260814_212347.pdf\" ./img2 1 999 1.3)"
     ]
   }
 }

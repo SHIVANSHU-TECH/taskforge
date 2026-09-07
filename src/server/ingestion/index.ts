@@ -4,7 +4,6 @@ import { analyzeProject } from "./analyze";
 import { extractZip } from "./extract";
 import { fetchGithubArchive, parseGithubUrl } from "./github";
 import type { AnalyzerResult } from "./types";
-
 function analysisData(a: AnalyzerResult) {
   return {
     framework: a.framework,
@@ -95,4 +94,50 @@ export async function ingestGithubRepo(args: {
     sourceRef,
     zipBuffer: buffer,
   });
+}
+
+/**
+ * Ingest a ZIP that was already uploaded directly to object storage (presigned
+ * URL flow). Downloads the archive from the storage key, runs the normal
+ * extract → analyze → persist pipeline, then moves it to the canonical location.
+ */
+export async function ingestFromStorageKey(args: {
+  workspaceId: string;
+  storageKey: string;
+  filename: string;
+}): Promise<{ projectId: string }> {
+  const storage = getStorageProvider();
+  const zipBuffer = await storage.get(args.storageKey);
+  const name = args.filename.replace(/\.zip$/i, "").trim() || "Uploaded project";
+
+  // Validate + extract + analyze before touching the DB.
+  const extracted = extractZip(zipBuffer);
+  const analysis = analyzeProject(extracted);
+
+  const project = await prisma.project.create({
+    data: {
+      workspaceId: args.workspaceId,
+      name,
+      sourceType: "zip",
+      sourceRef: args.filename,
+    },
+  });
+
+  try {
+    // Move from temporary upload key to canonical project key.
+    const canonicalKey = `projects/${project.id}/source.zip`;
+    await storage.put(canonicalKey, zipBuffer, { contentType: "application/zip" });
+    // Clean up the temporary upload.
+    await storage.delete(args.storageKey).catch(() => {});
+
+    await prisma.project.update({ where: { id: project.id }, data: { storageKey: canonicalKey } });
+    await prisma.projectAnalysis.create({
+      data: { projectId: project.id, ...analysisData(analysis) },
+    });
+  } catch (err) {
+    await prisma.project.delete({ where: { id: project.id } }).catch(() => {});
+    throw err;
+  }
+
+  return { projectId: project.id };
 }

@@ -10,4 +10,6 @@ export interface StorageProvider {
   get(key: string): Promise<Buffer>;
   exists(key: string): Promise<boolean>;
   delete(key: string): Promise<void>;
+  /** Returns a presigned URL for a direct client-side PUT. Not supported by all providers. */
+  presignedPutUrl?(key: string, opts?: { contentType?: string; expiresIn?: number }): Promise<string>;
 }

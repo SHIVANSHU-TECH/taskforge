@@ -5,6 +5,7 @@ import {
   DeleteObjectCommand,
   HeadObjectCommand,
 } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { getEnv } from "../../lib/env";
 import type { PutOptions, StorageProvider } from "./types";
 
@@ -104,5 +105,18 @@ export class S3StorageProvider implements StorageProvider {
 
   async delete(key: string): Promise<void> {
     await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: safeKey(key) }));
+  }
+
+  async presignedPutUrl(
+    key: string,
+    opts?: { contentType?: string; expiresIn?: number },
+  ): Promise<string> {
+    const k = safeKey(key);
+    const cmd = new PutObjectCommand({
+      Bucket: this.bucket,
+      Key: k,
+      ContentType: opts?.contentType,
+    });
+    return getSignedUrl(this.client, cmd, { expiresIn: opts?.expiresIn ?? 3600 });
   }
 }
