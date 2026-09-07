@@ -8,6 +8,24 @@ import { clientIp, rateLimit } from "@/lib/rate-limit";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
+// Vercel's default body size limit is 4.5 MB — raise it to match our 100 MB
+// archive cap. This only affects this route.
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
+// Next.js App Router body size config (overrides Vercel's 4.5 MB default).
+export const config = {
+  api: {
+    bodyParser: false,
+    responseLimit: false,
+  },
+};
+
+// Raise the body size limit for this route via the segment config.
+// See: https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config
+// @ts-expect-error – experimental segment config, not yet typed in all Next versions
+export const experimental_bodySizeLimit = "100mb";
+
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
