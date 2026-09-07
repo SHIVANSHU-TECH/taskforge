@@ -34,7 +34,7 @@ export function UploadZipForm({ workspaceId }: { workspaceId: string }) {
       };
 
       if (!urlRes.ok) {
-        setError(urlData.error ?? "Failed to prepare upload.");
+        setError(urlData.error ?? `Failed to prepare upload (HTTP ${urlRes.status}).`);
         return;
       }
 
