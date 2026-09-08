@@ -1,6 +1,17 @@
 /** @type {import('next').NextConfig} */
 const isDev = process.env.NODE_ENV !== "production";
 
+// Allow browser PUTs to the configured S3-compatible endpoint (presigned ZIP upload).
+function s3ConnectOrigin() {
+  const endpoint = process.env.S3_ENDPOINT?.trim();
+  if (!endpoint) return "";
+  try {
+    return ` ${new URL(endpoint).origin}`;
+  } catch {
+    return "";
+  }
+}
+
 // Content-Security-Policy. Next.js injects small inline bootstrap scripts and we
 // ship an inline no-flash theme script, so script/style need 'unsafe-inline'.
 // Dev additionally needs 'unsafe-eval' (React Refresh) and ws: (HMR).
@@ -10,7 +21,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
-  `connect-src 'self'${isDev ? " ws:" : ""}`,
+  `connect-src 'self'${isDev ? " ws:" : ""}${s3ConnectOrigin()}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

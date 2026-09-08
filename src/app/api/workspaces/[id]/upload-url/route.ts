@@ -53,10 +53,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     try {
       storage = getStorageProvider();
     } catch (e) {
-      // Storage misconfigured — surface the real message so it's visible in
-      // Vercel function logs and the response body.
+      // Storage misconfigured — in non-prod, fall back to direct multipart upload.
       const msg = e instanceof Error ? e.message : String(e);
       console.error("[upload-url] storage init failed:", msg);
+      if (process.env.NODE_ENV !== "production") {
+        return NextResponse.json({ fallback: true });
+      }
       return NextResponse.json(
         { error: `Storage configuration error: ${msg}` },
         { status: 500 },
